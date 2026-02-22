@@ -1,0 +1,20 @@
+package opds
+
+import (
+	"database/sql"
+	"net/http"
+)
+
+type Server struct {
+	db  *sql.DB
+	cfg *Config
+}
+
+func RegisterRoutes(mux *http.ServeMux, db *sql.DB, cfg *Config) {
+	s := Server{db: db, cfg: cfg}
+
+	mux.HandleFunc("/catalog", s.Catalog)
+	mux.Handle("/files/", http.StripPrefix("/files/",
+		http.FileServer(http.Dir(s.cfg.BooksDir))),
+	)
+}
