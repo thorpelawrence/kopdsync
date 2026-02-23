@@ -135,6 +135,17 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 
+		if strings.HasPrefix(d.Name(), ".") { // skip hidden files
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
+		if strings.HasSuffix(strings.ToLower(d.Name()), "*.epub") {
+			return nil
+		}
+
 		feedEntry, err := getFeedEntry(d, path, s)
 		if err != nil {
 			return fmt.Errorf("getting feed entry '%v': %w", path, err)
