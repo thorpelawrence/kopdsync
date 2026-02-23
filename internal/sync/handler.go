@@ -16,10 +16,6 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB, cfg *Config) {
 		cfg: cfg,
 	}
 
-	mux.HandleFunc("/healthcheck", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	})
-
 	mux.HandleFunc("GET /users/auth", s.WithAuth(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))

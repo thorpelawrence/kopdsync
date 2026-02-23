@@ -15,6 +15,10 @@ type CreateUserRequest struct {
 	Password string `json:"password"`
 }
 
+type CreateUserResponse struct {
+	Username string `json:"username"`
+}
+
 func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if !s.cfg.OpenRegistrations {
 		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
@@ -40,6 +44,16 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		slog.Error("creating user in database", "error", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusCreated)
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(CreateUserResponse{
+		Username: user.Username,
+	}); err != nil {
+		slog.Error("writing response json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

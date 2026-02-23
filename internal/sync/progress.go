@@ -59,7 +59,7 @@ func (s *Server) GetProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(doc); err != nil {
 		slog.Error("writing response json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -123,7 +123,7 @@ func (s *Server) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(UpdateProgressResponse{
 		Document:  doc.Document,
 		Timestamp: doc.Timestamp,

@@ -50,7 +50,7 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 		} else {
 			// user already exists
 			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-				http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 				return
 			}
 		}
