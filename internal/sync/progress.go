@@ -19,7 +19,7 @@ type Document struct {
 }
 
 func (s *Server) GetProgress(w http.ResponseWriter, r *http.Request) {
-	username := r.Header.Get("x-Auth-User")
+	username := r.Header.Get("X-Auth-User")
 
 	docID := r.PathValue("document")
 	if docID == "" {
@@ -73,7 +73,7 @@ type UpdateProgressResponse struct {
 }
 
 func (s *Server) UpdateProgress(w http.ResponseWriter, r *http.Request) {
-	username := r.Header.Get("x-Auth-User")
+	username := r.Header.Get("X-Auth-User")
 
 	var doc Document
 	if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
