@@ -131,10 +131,6 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 
-		if d.IsDir() {
-			return nil
-		}
-
 		if strings.HasPrefix(d.Name(), ".") { // skip hidden files
 			if d.IsDir() {
 				return filepath.SkipDir
@@ -142,7 +138,11 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 			return nil
 		}
 
-		if strings.HasSuffix(strings.ToLower(d.Name()), "*.epub") {
+		if d.IsDir() {
+			return nil
+		}
+
+		if !strings.HasSuffix(strings.ToLower(d.Name()), ".epub") {
 			return nil
 		}
 
