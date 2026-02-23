@@ -3,12 +3,20 @@ package sync
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
+
+func (s *Server) Auth(w http.ResponseWriter, r *http.Request) {
+	// assuming we've already passed WithAuth middleware
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprintln(w, `{"authorized":"OK"}`)
+}
 
 type CreateUserRequest struct {
 	Username string `json:"username"`
@@ -21,7 +29,9 @@ type CreateUserResponse struct {
 
 func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if !s.cfg.OpenRegistrations {
-		http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusForbidden)
+		fmt.Fprintln(w, MessageForbidden)
 		return
 	}
 
@@ -31,6 +41,13 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
+
+	if user.Username == "" || user.Password == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprintln(w, MessageInvalidRequest)
+		return
+	}
 
 	if _, err := s.db.Exec(
 		`INSERT INTO users (username, password) VALUES (?, ?)`,

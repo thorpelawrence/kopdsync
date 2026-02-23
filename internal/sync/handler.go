@@ -16,9 +16,7 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB, cfg *Config) {
 		cfg: cfg,
 	}
 
-	mux.HandleFunc("GET /users/auth", s.WithAuth(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-	}))
+	mux.HandleFunc("GET /users/auth", s.WithAuth(s.Auth))
 	mux.HandleFunc("POST /users/create", s.CreateUser)
 
 	mux.HandleFunc("GET /syncs/progress/{document}", s.WithAuth(s.GetProgress))

@@ -3,6 +3,7 @@ package sync
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -20,7 +21,9 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 		password := r.Header.Get("X-Auth-Key")
 
 		if username == "" || password == "" {
-			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusUnauthorized)
+			fmt.Fprintln(w, MessageUnauthorized)
 			return
 		}
 
@@ -33,7 +36,15 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if errors.Is(err, sql.ErrNoRows) && s.cfg.OpenRegistrations {
+		userExists := !errors.Is(err, sql.ErrNoRows)
+		if !userExists {
+			if !s.cfg.OpenRegistrations {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusForbidden)
+				fmt.Fprintln(w, MessageForbidden)
+				return
+			}
+
 			// auto create user when registrations are open
 			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 			if err != nil {
@@ -48,9 +59,10 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 		} else {
-			// user already exists
 			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-				http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusUnauthorized)
+				fmt.Fprintln(w, MessageUnauthorized)
 				return
 			}
 		}
