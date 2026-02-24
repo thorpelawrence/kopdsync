@@ -36,8 +36,7 @@ func (s *Server) GetProgress(w http.ResponseWriter, r *http.Request) {
 			percentage,
 			progress,
 			timestamp
-		FROM
-			progress
+		FROM progress
 		WHERE
 			document = ?
 			AND username = ?

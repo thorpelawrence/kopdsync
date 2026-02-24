@@ -28,7 +28,11 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 		}
 
 		var user User
-		row := s.db.QueryRow(`SELECT username, password FROM users WHERE username = ?`, username)
+		row := s.db.QueryRow(`
+			SELECT username, password
+			FROM users
+			WHERE username = ?
+		`, username)
 		err := row.Scan(&user.Username, &user.Password)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
 			slog.Error("checking for existing user", "error", err)
@@ -53,8 +57,11 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 				return
 			}
 
-			if _, err := s.db.Exec(`INSERT INTO users (username, password) VALUES (?, ?)`, username, hash); err != nil {
 				slog.Error("creating user", "error", err)
+			if _, err := s.db.Exec(`
+				INSERT INTO users (username, password)
+				VALUES (?, ?)
+			`, username, hash); err != nil {
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}

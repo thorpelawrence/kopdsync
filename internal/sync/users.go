@@ -49,8 +49,10 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err := s.db.Exec(
-		`INSERT INTO users (username, password) VALUES (?, ?)`,
+	if _, err := s.db.Exec(`
+		INSERT INTO users (username, password)
+		VALUES (?, ?)
+	`,
 		user.Username,
 		user.Password,
 	); err != nil {
