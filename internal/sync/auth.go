@@ -4,8 +4,9 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
+
+	"github.com/thorpelawrence/kopdsync/internal/logger"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -17,6 +18,8 @@ type User struct {
 
 func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		logger := logger.FromContext(r.Context())
+
 		username := r.Header.Get("X-Auth-User")
 		password := r.Header.Get("X-Auth-Key")
 
@@ -35,7 +38,7 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 		`, username)
 		err := row.Scan(&user.Username, &user.Password)
 		if err != nil && !errors.Is(err, sql.ErrNoRows) {
-			slog.Error("checking for existing user", "error", err)
+			logger.Error("checking for existing user", "error", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -52,16 +55,16 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 			// auto create user when registrations are open
 			hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 			if err != nil {
-				slog.Error("generating password hash", "error", err)
+				logger.Error("generating password hash", "error", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}
 
-				slog.Error("creating user", "error", err)
 			if _, err := s.db.Exec(`
 				INSERT INTO users (username, password)
 				VALUES (?, ?)
 			`, username, hash); err != nil {
+				logger.Error("creating user", "error", err)
 				http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				return
 			}

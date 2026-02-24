@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log/slog"
 	"net/http"
 
+	"github.com/thorpelawrence/kopdsync/internal/logger"
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
@@ -28,6 +28,8 @@ type CreateUserResponse struct {
 }
 
 func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
+	logger := logger.FromContext(r.Context())
+
 	if !s.cfg.OpenRegistrations {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusForbidden)
@@ -37,7 +39,7 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 
 	var user CreateUserRequest
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-		slog.Error("decoding request json", "error", err)
+		logger.Error("decoding request json", "error", err)
 		return
 	}
 	defer r.Body.Close()
@@ -62,7 +64,7 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		slog.Error("creating user in database", "error", err)
+		logger.Error("creating user in database", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -72,7 +74,7 @@ func (s *Server) CreateUser(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(CreateUserResponse{
 		Username: user.Username,
 	}); err != nil {
-		slog.Error("writing response json", "error", err)
+		logger.Error("writing response json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

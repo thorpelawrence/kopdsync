@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"github.com/thorpelawrence/kopdsync/internal/database"
+	"github.com/thorpelawrence/kopdsync/internal/logger"
 	"github.com/thorpelawrence/kopdsync/internal/opds"
 	"github.com/thorpelawrence/kopdsync/internal/sync"
 )
@@ -17,10 +18,12 @@ var (
 	dsn               = flag.String("db", "sync.db", "sqlite database file for sync")
 	booksDir          = flag.String("books", "./books", "directory containing EPUB files for OPDS")
 	openRegistrations = flag.Bool("registrations", false, "allow new user registrations")
+	debug             = flag.Bool("debug", false, "enable debug logging")
 )
 
 func main() {
 	flag.Parse()
+	logger.Init(*debug)
 
 	if err := run(); err != nil {
 		slog.Error(err.Error())
@@ -49,11 +52,9 @@ func run() error {
 		OpenRegistrations: *openRegistrations,
 	})
 
-	http.Handle("/", mux)
-
 	slog.Info("starting", "listen", *listen)
 
-	if err := http.ListenAndServe(*listen, nil); err != nil {
+	if err := http.ListenAndServe(*listen, logger.Middleware(mux)); err != nil {
 		return fmt.Errorf("server failed to start: %w", err)
 	}
 

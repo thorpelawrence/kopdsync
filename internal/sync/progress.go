@@ -4,9 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 	"time"
+
+	"github.com/thorpelawrence/kopdsync/internal/logger"
 )
 
 type Document struct {
@@ -19,6 +20,8 @@ type Document struct {
 }
 
 func (s *Server) GetProgress(w http.ResponseWriter, r *http.Request) {
+	logger := logger.FromContext(r.Context())
+
 	username := r.Header.Get("X-Auth-User")
 
 	docID := r.PathValue("document")
@@ -53,14 +56,14 @@ func (s *Server) GetProgress(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		slog.Error("retrieving status", "error", err)
+		logger.Error("retrieving progress", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(doc); err != nil {
-		slog.Error("writing response json", "error", err)
+		logger.Error("writing response json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -72,11 +75,12 @@ type UpdateProgressResponse struct {
 }
 
 func (s *Server) UpdateProgress(w http.ResponseWriter, r *http.Request) {
+	logger := logger.FromContext(r.Context())
 	username := r.Header.Get("X-Auth-User")
 
 	var doc Document
 	if err := json.NewDecoder(r.Body).Decode(&doc); err != nil {
-		slog.Error("reading request json", "error", err)
+		logger.Error("reading request json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -117,7 +121,7 @@ func (s *Server) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 		doc.Timestamp,
 		username,
 	); err != nil {
-		slog.Error("upserting progress", "error", err)
+		logger.Error("upserting progress", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -127,7 +131,7 @@ func (s *Server) UpdateProgress(w http.ResponseWriter, r *http.Request) {
 		Document:  doc.Document,
 		Timestamp: doc.Timestamp,
 	}); err != nil {
-		slog.Error("writing response json", "error", err)
+		logger.Error("writing response json", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

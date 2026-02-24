@@ -6,12 +6,13 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/thorpelawrence/kopdsync/internal/logger"
 
 	epub "github.com/taylorskalyo/goreader/epub"
 )
@@ -92,6 +93,8 @@ func NewEPUBMetadata(file io.ReaderAt, info fs.FileInfo) (md *EPUBMetadata, err 
 }
 
 func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
+	logger := logger.FromContext(r.Context())
+
 	scheme := "http"
 	if r.URL.Scheme != "" {
 		scheme = r.URL.Scheme
@@ -127,7 +130,7 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 
 	err := filepath.WalkDir(s.cfg.BooksDir, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			slog.Error("accessing path during content scan", "path", path, "error", err)
+			logger.Error("accessing path during content scan", "path", path, "error", err)
 			return nil
 		}
 
@@ -160,7 +163,7 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 		if pErr, ok := errors.AsType[*pathError](err); ok {
 			path = pErr.Path()
 		}
-		slog.Error("scanning books directory", "path", path, "error", err)
+		logger.Error("scanning books directory", "path", path, "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -171,52 +174,53 @@ func (s *Server) Catalog(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/atom+xml;profile=opds-catalog;charset=utf-8")
 	if _, err := w.Write([]byte(xml.Header)); err != nil {
-		slog.Error("writing xml header", "error", err)
+		logger.Error("writing xml header", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 	if err := xml.NewEncoder(w).Encode(feed); err != nil {
-		slog.Error("encode opds feed xml", "error", err)
+		logger.Error("encode opds feed xml", "error", err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 }
 
 type pathError struct {
-	Err  string
+	err  error
 	path string
 }
 
-func (f *pathError) Error() string {
-	return f.Err
+func (e *pathError) Error() string {
+	return e.err.Error()
 }
 
-func (f *pathError) Path() string {
-	return f.path
+func (e *pathError) Path() string {
+	return e.path
 }
 
-func newPathError(path string, format string, a ...any) error {
-	return &pathError{
-		Err:  fmt.Sprintf(format, a...),
-		path: path,
-	}
+func (e *pathError) Unwrap() error {
+	return e.err
+}
+
+func newPathError(err error, path string) error {
+	return &pathError{err: err, path: path}
 }
 
 func getFeedEntry(d fs.DirEntry, path string, s *Server) (*AtomEntry, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, newPathError(path, "opening file: %s", err)
+		return nil, newPathError(fmt.Errorf("opening file: %w", err), path)
 	}
 	defer f.Close()
 
 	info, err := d.Info()
 	if err != nil {
-		return nil, newPathError(path, "getting file info: %s", err)
+		return nil, newPathError(fmt.Errorf("getting file info: %w", err), path)
 	}
 
 	md, err := NewEPUBMetadata(f, info)
 	if err != nil {
-		return nil, newPathError(path, "getting epub metadata: %s", err)
+		return nil, newPathError(fmt.Errorf("getting epub metadata: %w", err), path)
 	}
 
 	if md.Title == "" {
@@ -225,7 +229,7 @@ func getFeedEntry(d fs.DirEntry, path string, s *Server) (*AtomEntry, error) {
 
 	relPath, err := filepath.Rel(s.cfg.BooksDir, path)
 	if err != nil {
-		return nil, newPathError(path, "getting relative path: %s", err)
+		return nil, newPathError(fmt.Errorf("getting relative path: %w", err), path)
 	}
 
 	entry := AtomEntry{
