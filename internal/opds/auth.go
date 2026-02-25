@@ -1,7 +1,9 @@
 package opds
 
 import (
+	"crypto/md5"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"net/http"
 
@@ -13,6 +15,11 @@ import (
 type User struct {
 	Username string
 	Password string
+}
+
+func md5Hex(s string) string {
+	h := md5.Sum([]byte(s))
+	return hex.EncodeToString(h[:])
 }
 
 func (s *Server) WithBasicAuth(h http.HandlerFunc) http.HandlerFunc {
@@ -44,7 +51,9 @@ func (s *Server) WithBasicAuth(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		md5Password := md5Hex(password)
+
+		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(md5Password)); err != nil {
 			w.Header().Set("WWW-Authenticate", `Basic realm="kopdsync"`)
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
