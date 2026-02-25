@@ -13,6 +13,8 @@ type Server struct {
 func RegisterRoutes(mux *http.ServeMux, db *sql.DB, cfg *Config) {
 	s := Server{db: db, cfg: cfg}
 
-	mux.HandleFunc("/catalog", s.WithBasicAuth(s.Catalog))
-	mux.HandleFunc("/files/", s.WithBasicAuth(s.FileServer))
+	mux.Handle("GET /catalog", s.WithBasicAuth(http.HandlerFunc(s.Catalog)))
+	mux.Handle("GET /files/", s.WithBasicAuth(
+		http.StripPrefix("/files/", http.FileServer(http.Dir(s.cfg.BooksDir))),
+	))
 }

@@ -22,8 +22,8 @@ func md5Hex(s string) string {
 	return hex.EncodeToString(h[:])
 }
 
-func (s *Server) WithBasicAuth(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) WithBasicAuth(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := logger.FromContext(r.Context())
 
 		username, password, ok := r.BasicAuth()
@@ -60,6 +60,6 @@ func (s *Server) WithBasicAuth(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		h(w, r)
-	}
+		h.ServeHTTP(w, r)
+	})
 }

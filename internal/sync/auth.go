@@ -16,8 +16,8 @@ type User struct {
 	Password string
 }
 
-func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+func (s *Server) WithAuth(h http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		logger := logger.FromContext(r.Context())
 
 		username := r.Header.Get("X-Auth-User")
@@ -77,6 +77,6 @@ func (s *Server) WithAuth(h http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		h(w, r)
-	}
+		h.ServeHTTP(w, r)
+	})
 }
