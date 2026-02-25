@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/fs"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -232,8 +233,10 @@ func getFeedEntry(d fs.DirEntry, path string, s *Server) (*AtomEntry, error) {
 		return nil, newPathError(fmt.Errorf("getting relative path: %w", err), path)
 	}
 
+	escapedPath := (&url.URL{Path: relPath}).EscapedPath()
+
 	entry := AtomEntry{
-		ID:    fmt.Sprintf("urn:file:%s", relPath),
+		ID:    fmt.Sprintf("urn:file:%s", escapedPath),
 		Title: md.Title,
 		Author: &AtomAuthor{
 			Name: md.Author,
@@ -243,7 +246,7 @@ func getFeedEntry(d fs.DirEntry, path string, s *Server) (*AtomEntry, error) {
 		Link: []AtomLink{
 			{
 				Rel:   "http://opds-spec.org/acquisition",
-				Href:  fmt.Sprintf("/files/%s", relPath),
+				Href:  fmt.Sprintf("/files/%s", escapedPath),
 				Type:  "application/epub+zip",
 				Title: md.Title,
 			},
