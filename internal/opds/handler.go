@@ -14,7 +14,5 @@ func RegisterRoutes(mux *http.ServeMux, db *sql.DB, cfg *Config) {
 	s := Server{db: db, cfg: cfg}
 
 	mux.HandleFunc("/catalog", s.WithBasicAuth(s.Catalog))
-	mux.Handle("/files/", http.StripPrefix("/files/",
-		http.FileServer(http.Dir(s.cfg.BooksDir))),
-	)
+	mux.HandleFunc("/files/", s.WithBasicAuth(s.FileServer))
 }
