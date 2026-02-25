@@ -51,6 +51,7 @@ func (s *Server) WithBasicAuth(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		// sync clients hash passwords with MD5, reproduce that when comparing
 		md5Password := md5Hex(password)
 
 		if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(md5Password)); err != nil {
